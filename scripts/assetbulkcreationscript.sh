@@ -2,13 +2,13 @@
 echo"
 #--------------------------------------------------------------------------------
 #                                                                                  
-#  Application for creating asset in bulk in the fastest way possible   
+#  Application for creating assets in bulk in the fastest way possible   
 #  with the combination of goal scripts and atomic transfers and inner TXN.
 #  Assets are created by an application account (Escrow) and then opted in by the 
 #  Creator. The assets are then transfered to the Creator of the app.      
 # 
-#  This script needs alteration in order to function on lines assuming 
-#  no further changes
+#  This script needs alteration in order to function on the following lines  
+#  assuming no further changes
 #  40, 47, 54, 70, 73
 #
 #
@@ -17,14 +17,14 @@ echo"
 #  
 #  DISCLAIMER, THIS SCRIPT IS FOR EDUCATIONAL PURPOSES ONLY AND MADE 
 #  FOR A PRIVATE NETWORK OR SANDBOX INSTANCE. THIS SCRIPT HAS NOT YET BEEN AUDITED
-#  IT IS NOT AVICED TO USE IT IN A PRODUCTION ENVIRONMENT!
+#  IT IS NOT AVISED TO USE IT IN A PRODUCTION ENVIRONMENT!
 #  
 #  MAINTAINER: tobias.thiel@carbonstack.de                                                                             
 #_________________________________________________________________________________"
 
 
 #reading input from the User or App 
-#calculation of the needed Algos needed in the app for creation and holding them.
+#calculation of the  Algos needed in the app for creation and holding them.
 #based on the needed assets the required iterations are calculated based on 240 ASAs per call.
 #lastly variables for Opt-In and transactions are calculated and set.
 echo "Enter the amount of Assets you want to create"
@@ -148,7 +148,7 @@ done
 sleep 5
 echo "Waiting for chain to get cought up!"
 sleep 15
-echo "Transfered ASA found unter transfered.txt"
+echo "Transfered ASA found under transfered.txt"
 ./sandbox goal account info -a $account_name > transfered.txt
 echo "Finished"
 
