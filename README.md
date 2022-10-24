@@ -74,4 +74,9 @@ and also remove the images saved by docker.
 ```shell
 bash assetbulkcreationscript.sh
 ```
-        
+
+## Coming up
+1. How to (includes: story behind ERCs, problems and how they are solved with Algorand)
+2. Script and environment improvement (new flexible Smart Contracts Environment)
+3. Bulk Transactions and their environment 
+4. Opt-In and Transaction improvements
