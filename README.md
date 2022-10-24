@@ -63,11 +63,12 @@ and also remove the images saved by docker.
 
 1. Download the repository
 2. Put the files into the folders associated for sandbox or your private instance.
-        a. The pyTeal files should be situated where the teal files are as well.
-        b. The Teal file should be there as well.
-        c. The script should be were the sandbox scripts are. 
+
+        1. The pyTeal files should be situated where the teal files are as well.
+        2. The Teal file should be there as well.
+        3. The script should be were the sandbox scripts are. 
 3. Change the parameters in the pyTeal to your liking within the boundaries
-4. Change the variables inside the script. These include variables set for ***the respective paths***
+5. Change the variables inside the script. These include variables set for ***the respective paths***
    these are also present in the ***app creations***. ****More information on that in the script itself.**** 
 5. Once finished navigate to the folder were the script is present. 
 6. Execute the script via 
