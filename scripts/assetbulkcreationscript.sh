@@ -142,10 +142,10 @@ echo "##########################################################################
 #is present and the teal file is compiled to.
 #Make sure to rename the teal file to something related to your goal. 
 #The clear.teal should also be compiled here, for simplicity a basic clear.teal is present.
-cd /Users/tobiasthiel/Documents/Carbonstack/sandbox/tutorial/pyteal-course/build/
+cd /path/to/mounted/folder
 rm approval.teal
 python3 asacontractloopv2.py > approval.teal
-cd /Users/tobiasthiel/Documents/Carbonstack/sandbox
+cd /path/to/sandbox
 echo "##########################################################################################"
 
 #Now the accounts are set and displayed. The following script assumes that in the account list the top account
@@ -157,7 +157,7 @@ echo "##########################################################################
 #These lines create the smart contract and set the variable to the deployed APPid. 
 #The Appid is then saved in an external file that is later read by the caller pyteal.
 #In addition the escrow account is also saved to a variable for later calls, including the intial funding of it.
-asa_app_id=$(./sandbox goal app create --creator $account_name --approval-prog /data/build/approval.teal --clear-prog /data/build/clear.teal --global-byteslices 1 --global-ints 1 --local-byteslices 0 --local-ints 0 |awk '{ print $6 }'|tail -1)
+asa_app_id=$(./sandbox goal app create --creator $account_name --approval-prog /data/of/approval/teal --clear-prog /data/of/clear/teal --global-byteslices 1 --global-ints 1 --local-byteslices 0 --local-ints 0 |awk '{ print $6 }'|tail -1)
 echo "the app id is $asa_app_id"
 echo $asa_app_id > appid.txt
 escrow_account=$(./sandbox goal app info --app-id $asa_app_id |awk '{ print $3 }'|head -n $[ 2 ] | tail -n 1)
@@ -171,9 +171,9 @@ echo "##########################################################################
 #Per default this script is creating at most 240 assets in order to do that it is required to have a caller contract call the creation contract 15 times.
 #This is enabled due to the parameters of X and Y st above. 
 #For that to happen the caller contract needs to be compiled as well. The Appid was saved beforehand.
-cd /Users/tobiasthiel/Documents/Carbonstack/sandbox/tutorial/pyteal-course/build/
+cd /path/to/mounted/folder
 python3 asa_callerv2.py > approval2.teal
-cd /Users/tobiasthiel/Documents/Carbonstack/sandbox
+cd cd /path/to/sandbox
 echo "##########################################################################################"
 
 #Coming to the execution of the ASA creation. The caller app is created its ID is then saved for the later call-
@@ -182,7 +182,7 @@ echo "##########################################################################
 #The creation call is triggered by the app caller smart contract which is triggered directly in the loop. The maximum fee is sent in order to reserve the required opcode. 
 #The and '&' symbol is required in order to allow your processor to perform the call as a multithread application.
 #The sleeptimer in the loop is required in order to ensure that all the transaction are actually packed inside a block this is highly dependend on blocktime/processorspeed/corecount
-caller_app_id=$(./sandbox goal app create --creator $account_name --approval-prog /data/build/approval2.teal --clear-prog /data/build/clear.teal --global-byteslices 1 --global-ints 1 --local-byteslices 0 --local-ints 0 |awk '{ print $6 }'|tail -1)
+caller_app_id=$(./sandbox goal app create --creator $account_name --approval-prog /data/of/approval/teal --clear-prog //data/of/clear/teal --global-byteslices 1 --global-ints 1 --local-byteslices 0 --local-ints 0 |awk '{ print $6 }'|tail -1)
 echo "the contract caller id $caller_app_id"
 #The "large" batch is (based on k1 x1 and y1) is created
 for ((i = 1 ; i<=$k1; i++))
