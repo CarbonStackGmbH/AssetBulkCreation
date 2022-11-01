@@ -1,0 +1,26 @@
+{
+    "title":"TestCO2eProject",
+    "name":"CarbonStackToken",
+    "description":"A CarbonStack is a local afforestation project that uptakes CO2 from the atmosphere. We pair those with international carbon credits to ensure you balance the compensation. We cooperate closely with regional forest owners to ensure that the projects fulfill the highest biodiversity and carbon sequestration standards",
+    "satellite_image":"" ,
+    "satellite_image_integrity":"",
+    "satellite_image_mimetype":"jpg" ,
+    "external_url":"https://carbonstack.de",
+    "external_url_integrity":"0459bb0017a6d994caa87fbb35ce2a6af6d2a69395bce77f23523d5d63aa2d12",
+    "external_url_mimetype":"html",
+    "standard":"CarbonStack",
+    "standard_url":"https://carbonstack.de",
+    "standard_url_integrity":"0459bb0017a6d994caa87fbb35ce2a6af6d2a69395bce77f23523d5d63aa2d12",
+    "standard_url_mimetype": "html",
+    "shortfall_security_link":"",
+    "shortfall_security_link_integrity":"",
+    "shortfall_security_link_mimetype":"",
+    "forestation_attributes":
+    {
+        "central-coordinates": ["51.10","10.27"],
+        "country":"Germany",
+        "county":"Harz",
+        "project_id":"01",
+        "projected_carbon_stock":"10023"
+    }
+}
