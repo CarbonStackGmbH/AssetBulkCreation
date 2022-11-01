@@ -3,10 +3,12 @@
  *  Application for calculating the cycles needed for the asset creation of ARC-CS.  *
  *  The result of the Application is the provision of both the amount of Cycles and  *
  *  Amount of Transactions per Cycle. Divide by 240 as long as possible.             *
+ *  Maintainer: Noah Winneberger/Tobias Thiel                                        *
+ *                                                                                   *
  *                                                                                   *
  ************************************************************************************/
+ /*required in order to accept external input */
  const prompt = require('prompt-sync')({sigint: true});
- /*const hashed = prompt('Enter the hash: ');*/
  const num = prompt('Enter the asset amount: ');
  const fs = require('fs')
 /**
