@@ -1,15 +1,15 @@
 #!/bin/bash
-echo"
+echo "
 #--------------------------------------------------------------------------------
 #                                                                                  
-#  Application for creating assets in bulk in the fastest way possible   
+#  Application for creating asset in bulk in the fastest way possible   
 #  with the combination of goal scripts and atomic transfers and inner TXN.
 #  Assets are created by an application account (Escrow) and then opted in by the 
 #  Creator. The assets are then transfered to the Creator of the app.      
 # 
-#  This script needs alteration in order to function on the following lines  
-#  assuming no further changes
-#  40, 47, 54, 70, 73
+#  This script needs alteration in order to function 
+#  
+#  
 #
 #
 #  THE VALUES IN THE SMARTCONTRACT NEED TO BE CHANGED OR THE AMOUNT OF ASSETS 
@@ -17,24 +17,124 @@ echo"
 #  
 #  DISCLAIMER, THIS SCRIPT IS FOR EDUCATIONAL PURPOSES ONLY AND MADE 
 #  FOR A PRIVATE NETWORK OR SANDBOX INSTANCE. THIS SCRIPT HAS NOT YET BEEN AUDITED
-#  IT IS NOT AVISED TO USE IT IN A PRODUCTION ENVIRONMENT!
-#  
-#  MAINTAINER: tobias.thiel@carbonstack.de                                                                             
+#  IT IS NOT AVICED TO USE IT IN A PRODUCTION ENVIRONMENT!
+#  This script will be Updated on a regular basis and is part of the development of 
+#  CarbonStack.
+#  Version:      2.0
+#  Last Updated: 28.10.2022
+#  MAINTAINER:   tobias.thiel@carbonstack.de                                                                             
 #_________________________________________________________________________________"
 
 
-#reading input from the User or App 
-#calculation of the  Algos needed in the app for creation and holding them.
-#based on the needed assets the required iterations are calculated based on 240 ASAs per call.
-#lastly variables for Opt-In and transactions are calculated and set.
-echo "Enter the amount of Assets you want to create"
-        read amount_assets
-        amount_algo=$(($amount_assets*200000))
-        k=$(($amount_assets/240))
+#The current iteration requires input from the user in order to function. 
+#TODO: Create a Trigger, in JS/Frontend. At the current stage the URL to the 
+#project has to be set in a later iteration this will be supplied by an external source.
+#This iteration also includes a hash calculcator, that calculates the checksum of the 
+#selected ARC (ATM USER INPUT SHOULD BE FILETRIGGER). This hash is then cut and exported.
+#TODO: Clean up the usability of the ARC. 
+#The script also reads the content of the ARC and sets the parameters later needed for the asset creation. 
+#CAUTION AS THIS IS A SCRIPT MADE FOR AND BY CARBONSTACK; SOME PARAMETERS ARE DIRECTLY SET IN THE SCRIPT!
+#This iteration can create any amount of Assets was tested up to 55555. This script calls
+#a Javascript program used to calculate the optimal (based on 2 loops of innerTxns and direct 
+#creation calls)to minimize the time needed to create the defined amount of assets. The javascript
+#programm then passes the Variables K1,K2,K3 for the loop calls and X1 X2 and Y1 Y2 for the Caller
+#and Creation Smartcontract.
+
+#This part of the script removes all the old txt files associated to previous asset creations. 
+#If not deleted the script should overwrite the data inside the files aswell. 
+#TODO: Construct one single text/Json File readable by the pyteals
+#TODO: Make version with combined OPT-IN/TRANSFER WORK (easy outside of sandbox). 
+
+rm -f x1.txt
+rm -f x2.txt
+rm -f y1.txt
+rm -f y2.txt       
+rm name.txt
+rm unit.txt 
+rm url.txt 
+rm pid.txt 
+rm hash.txt
+
+#TODO: Implement FRONTEND to URL 
+echo "Enter the URL of the TOKEN Metadata"
+read url
+#Menue for selecting the ARC needed for the project. 
+#Should be in the FRONT END LATER. 
+PS3="Use number to select a file or 'stop' to cancel: "
+
+        # allow the user to choose a file
+        select filename in *.json
+            do
+                # leave the loop if the user says 'stop'
+                if [[ "$REPLY" == stop ]]; then break; fi
+
+                # complain if no file was selected, and loop to ask again
+                if [[ "$filename" == "" ]]
+                then
+                echo "'$REPLY' is not a valid number"
+                continue
+                fi
+                
+                # now we can use the selected file
+                # Builds the SHA HASH and cute the last 32 Bytes and saves them externally. 
+                #TODO SHOULD BE INTERNALLY but does not really matter. 
+                echo $(shasum -a 256 $filename) | cut -c 34-64    > hash.txt
+                # it'll ask for another unless we leave the loop
+                break
+            done
+            
+
+#HARD CODED UNITS
+unit="CO2e"
+#READ TOKEN TYPE FROM THE ARC
+name=($(jq -r '.name' $filename))
+#READS THE PROJECT ID FROM THE ARC.
+pid=($(jq -r '.title' $filename))
+echo "$pid"
+echo "$name" 
+
+echo "$unit" > unit.txt
+echo "$name" > name.txt
+echo "$url" > url.txt
+echo "$pid" > pid.txt
+
+
+
+#Executes the calculation script. 
+node index.js 
+
+#Get iterations needed from the calculation. 
+k1=($(jq -r '.K1' new.json)) 
+k2=($(jq -r '.K2' new.json)) 
+k3=($(jq -r '.K3' new.json)) 
+#Get the caller and asa-creation loop iterations
+x1=($(jq -r '.X1' new.json)) 
+x2=($(jq -r '.X2' new.json))
+y1=($(jq -r '.Y1' new.json)) 
+y2=($(jq -r '.Y2' new.json)) 
+
+#forward the variables to the pyTEAL readable format
+#TODO: transform it into one form that is readable by the pyTEAL 
+#k1-k3 are required for the script
+echo "$k1"
+echo "$x1" > x1.txt
+echo "$y1" > y1.txt
+echo "$k2"
+echo "$x2" > x2.txt
+echo "$y2" > y2.txt
+echo "$k3"
+
+
+#Sets the total assets that need to be created and all associated with it.
+amount_assets=$(($k1*$x1*$y1+$k2*$x2*$y2+$k3))
+echo "$amount_assets"
+k=$(($k1+$k2+$k3))
+        amount_algo=$(($amount_assets*100000 + 100000))
         fin=$(($amount_assets+1))
-echo "total amount of assets: $fin"
+echo "total amount of assets: $amount_assets"
 echo "Holding capital: $amount_algo"
 echo "amount of iterations needed: $k"
+echo "##########################################################################################"
 
 
 
@@ -42,10 +142,10 @@ echo "amount of iterations needed: $k"
 #is present and the teal file is compiled to.
 #Make sure to rename the teal file to something related to your goal. 
 #The clear.teal should also be compiled here, for simplicity a basic clear.teal is present.
-cd /PATH/TO/MOUNTED/FOLDER
+cd /Users/tobiasthiel/Documents/Carbonstack/sandbox/tutorial/pyteal-course/build/
 rm approval.teal
-python3 asacontractloop.py > approval.teal
-cd /PATH/TO/THESCRIPT/SANDBOX
+python3 asacontractloopv2.py > approval.teal
+cd /Users/tobiasthiel/Documents/Carbonstack/sandbox
 echo "##########################################################################################"
 
 #Now the accounts are set and displayed. The following script assumes that in the account list the top account
@@ -57,21 +157,23 @@ echo "##########################################################################
 #These lines create the smart contract and set the variable to the deployed APPid. 
 #The Appid is then saved in an external file that is later read by the caller pyteal.
 #In addition the escrow account is also saved to a variable for later calls, including the intial funding of it.
-asa_app_id=$(./sandbox goal app create --creator $account_name --approval-prog /PATH/MOUNTED/FOLDER/APPROVALTEAL --clear-prog /PATH/MOUNTED/FOLDER/CLEARTEAL --global-byteslices 1 --global-ints 1 --local-byteslices 0 --local-ints 0 |awk '{ print $6 }'|tail -1)
+asa_app_id=$(./sandbox goal app create --creator $account_name --approval-prog /data/build/approval.teal --clear-prog /data/build/clear.teal --global-byteslices 1 --global-ints 1 --local-byteslices 0 --local-ints 0 |awk '{ print $6 }'|tail -1)
 echo "the app id is $asa_app_id"
 echo $asa_app_id > appid.txt
 escrow_account=$(./sandbox goal app info --app-id $asa_app_id |awk '{ print $3 }'|head -n $[ 2 ] | tail -n 1)
 echo "the creator account will be $escrow_account"
 echo "Funding the app account"
 ./sandbox goal clerk send -f $account_name -t $escrow_account -a $amount_algo > /dev/null &
+echo "##########################################################################################"
 
 
 
-#Per default this script is creating 240 assets in order to do that it is required to have a caller contract call the creation contract 15 times.
+#Per default this script is creating at most 240 assets in order to do that it is required to have a caller contract call the creation contract 15 times.
+#This is enabled due to the parameters of X and Y st above. 
 #For that to happen the caller contract needs to be compiled as well. The Appid was saved beforehand.
-cd /PATH/TO/MOUNTED/FOLDER
-python3 asacreationcaller.py > approval2.teal
-cd /PATH/TO/THESCRIPT/SANDBOX
+cd /Users/tobiasthiel/Documents/Carbonstack/sandbox/tutorial/pyteal-course/build/
+python3 asa_callerv2.py > approval2.teal
+cd /Users/tobiasthiel/Documents/Carbonstack/sandbox
 echo "##########################################################################################"
 
 #Coming to the execution of the ASA creation. The caller app is created its ID is then saved for the later call-
@@ -80,15 +182,38 @@ echo "##########################################################################
 #The creation call is triggered by the app caller smart contract which is triggered directly in the loop. The maximum fee is sent in order to reserve the required opcode. 
 #The and '&' symbol is required in order to allow your processor to perform the call as a multithread application.
 #The sleeptimer in the loop is required in order to ensure that all the transaction are actually packed inside a block this is highly dependend on blocktime/processorspeed/corecount
-caller_app_id=$(./sandbox goal app create --creator $account_name --approval-prog /PATH/MOUNTED/FOLDER/APPROVAL2TEAL --clear-prog /PATH/MOUNTED/FOLDER/CLEARTEAL --global-byteslices 1 --global-ints 1 --local-byteslices 0 --local-ints 0 |awk '{ print $6 }'|tail -1)
+caller_app_id=$(./sandbox goal app create --creator $account_name --approval-prog /data/build/approval2.teal --clear-prog /data/build/clear.teal --global-byteslices 1 --global-ints 1 --local-byteslices 0 --local-ints 0 |awk '{ print $6 }'|tail -1)
 echo "the contract caller id $caller_app_id"
-for ((i = 1 ; i<=$k; i++))
+#The "large" batch is (based on k1 x1 and y1) is created
+for ((i = 1 ; i<=$k1; i++))
 do
-./sandbox  goal app call --app-id $caller_app_id --app-arg "str:create_asa"  -f $account_name --foreign-app $asa_app_id --fee 320000 > /dev/null  & 
-sleep 0.5
-o=$(($i*240))
+./sandbox  goal app call --app-id $caller_app_id --app-arg "str:create_asa"  -f $account_name --foreign-app $asa_app_id --fee 320000  > /dev/null  & 
+o=$((($i)*$x1*$y1))
+#This line allows the count to move forward without printing everything in a new line. 
 echo -ne "$o/$amount_assets \033[0K\r"
-echo "$o"
+sleep 0.5
+done
+#set j so the count goes onward
+j=$o
+#The "medium" batch (based on k2 x2 and y2) is created here.
+for ((i = 1 ; i <= $k2; i++))
+do
+#basic calculation to for smaller batch
+o=$(($j+($i)*$x2*$y2))
+./sandbox  goal app call --app-id $caller_app_id --app-arg "str:rerun_asa"  -f $account_name --foreign-app $asa_app_id --fee 320000   > /dev/null  & 
+echo -ne "$o/$amount_assets \033[0K\r"
+sleep 0.5
+done
+j=$o
+
+#The small single creations happen here based on k3. 
+for ((i = 1 ; i <= $k3; i++))
+do
+
+./sandbox  goal app call --app-id $caller_app_id --app-arg "str:final_asa"  -f $account_name --foreign-app $asa_app_id --fee 10000 > /dev/null  & 
+sleep 0.5
+o=$(($j+$i))
+echo -ne "$o/$amount_assets \033[0K\r"
 done
 echo "##########################################################################################"
 echo "Waiting for chain to get cought up!"
@@ -110,7 +235,7 @@ then
 #echo "Enter the first AssetID for Opt-In and Transfer"
 #read s
 s=1 
-buffer=$(($k*16))
+buffer=$((($k1+$k2+$k3)*16))
 echo "$buffer"
 fin=$(($amount_assets + $buffer))
 e=$fin
@@ -127,17 +252,18 @@ fi
 
 echo "$e"
 echo "Manager account opt-in"
+
 for ((i = $s ; i<=$e; i++))
 do
-./sandbox goal asset optin --assetid $i -a $account_name > /dev/null 2>&1 & 
+./sandbox goal asset optin --assetid $i -a $account_name  > /dev/null 2>&1 &
 echo -ne "$i/$e \033[0K\r"
 sleep 0.4
 done
-echo "##########################################################################################"
+echo "Opted in ASAs can be found in optedin.txt"
 echo "Waiting for chain to get cought up!"
 sleep 15
-echo "Opted in ASAs can be found in optedin.txt"
 ./sandbox goal account info -a $account_name > optedin.txt
+echo "##########################################################################################"
 echo "Transfer assets from Escrow to Manager"
 for (( i=$s; i<=$e; i++))
 do
@@ -145,10 +271,7 @@ do
 echo -ne "$i/$e \033[0K\r"
 sleep 0.4
 done 
-sleep 5
 echo "Waiting for chain to get cought up!"
 sleep 15
 echo "Transfered ASA found under transfered.txt"
 ./sandbox goal account info -a $account_name > transfered.txt
-echo "Finished"
-
