@@ -1,55 +1,83 @@
 from pyteal import * 
 
-# This pyTEAL is only meant for educational purposes, do not use this pyteal on a production level!           #
-# The displayed contract creates 16 asset with one call. The parameters need to be changed based              #    
-# on the needs of the user. The smart contract is building a block of 16 inner transaction once called.       # 
-# The default amount per ASA is set to 1. All mutable addresses are set to the creator of the smart contract  # 
-# If you intent to call the Smart Contract from a different address to create the same ASA the addresses need #
-# to be adjusted e. g. Txn.Sender()                                                                           #
-# To trigger the ASA creation the app call must include the argument "create_asa".                            #
-# For the parameters the regular ASA constraints found under:                                                 #
-# https://developer.algorand.org/docs/get-details/parameter_tables/                                           #
-# apply.                                                                                                      #    
-# Maintainer:                                                                                                 #
-# Tobias Thiel |CarbonStack GmbH                                                                              #
-# tobias.thiel@carbonstack.de                                                                                 #
+#######################################################################################
+#         THIS PYTEAL HAS NOT YET BEEN SERUCITY AUDITTED. DO NOT USE IT               #
+#         IN A PRODUCTION ENVIRONMENT.                                                #
+#                                                                                     #
+#         THIS PYTEAL IS PART OF A ASSETBULKCREATION SCRIPT FROM CARBONSTACK GmbH.    #
+#         THIS SCRIPT WILL BE UPDATED ON A REGULAR BASIS.                             #
+#                                                                                     #
+# Current Version: 2.0                                                                #
+# Last updated: 28.10.2022                                                            #
+# Maintainer: tobias.thiel@carbonstack.de                                             #
+#                                                                                     #
+#######################################################################################
 
 
-    
+#This part reads the required variables for the asset creation.
+#y1 and y2 are always set based on the optimal time for the bundeled
+#creation. For simplicity reason they are read to the Program at from two 
+#different text files. TODO: make it read line by line
+
+f = open('/path/to/sandbox/y1.txt', 'r')
+y1 = int(f.readline())
+f.close()
+f = open('/path/to/sandbox/y2.txt', 'r')
+y2 = int(f.readline())
+f.close()
+
+
+#This part reads the variables defined in the ARC-Standard. Each read from 
+#text files that lines are directly taken from the ARC. For simplicity 
+#each is read individual. TODO: make it read line by line.
+
+f = open('/path/to/sandbox/unit.txt', 'r')
+unit_from_file= f.readline()
+f.close()
+f = open('/path/to/sandbox/name.txt', 'r')
+name_from_file=f.readline()
+f.close()
+f = open('/path/to/sandbox/pid.txt', 'r')
+pid_from_file= f.readline()
+f.close()
+f = open('/path/to/sandbox/hash.txt', 'r')
+hash_from_file=f.readline()
+f.close()
+f = open('/path/to/sandbox/url.txt', 'r')
+url_from_file= f.readline()
+f.close()
+
+#As some type errors occured the read variables are transformed in the required
+#type for the pyTeal program. The has has to be read as a string before being 
+#transformed to bytes. TODO: fix hash reading!
+
+unit = Bytes(unit_from_file)
+name = Bytes(name_from_file)
+url = Bytes(url_from_file)
+hash = Bytes("{}".format(hash_from_file))
+pid = Bytes(pid_from_file)
+
 def stateful():
-     #parameters needed for ASA creation that 
-    unit = Bytes("UNIT")
-    name = Bytes("NAME")
-    url = Bytes("LINKTOWEBSITE")
-    hash = Bytes("HASHOFMETADATA")
-    note = Bytes("TTPD0000")
-    #scratch variable needed for the loop
-    #in a later version this will be made available with an open/read/save/close addition for the variables
+        #parameters needed for ASA creation that 
+    #scratch variable for loop
     i = ScratchVar()
     on_create_asa= Seq([ 
-    #loop creates 16 Asset creation transactions change i.load() < Int(16) 
-    # to a number below 16 in order to adjust the amount of assets per call
-    #anything higher should result in a opcode limitation
-            For(i.store(Int(0)), i.load() < Int(16), i.store(i.load() + Int(1)))  
+                        #loop to chain 16 ASA creations together for the initial bulk of assets
+            For(i.store(Int(0)), i.load() < Int(y1), i.store(i.load() + Int(1)))  
             .Do( 
             InnerTxnBuilder.Begin(),                 
             InnerTxnBuilder.SetFields({
-    #identifies the type of transaction as an Assetconfigureration 
                     TxnField.type_enum: TxnType.AssetConfig,
-    #change in order to create more of the Asset itself
                     TxnField.config_asset_total: Int(1),
-    #change in order to allow a divison of the asset in smaller pieces                
                     TxnField.config_asset_decimals: Int(0),
-    #parameters come from the ones above the loop
                     TxnField.config_asset_unit_name: unit,
                     TxnField.config_asset_name: name,
                     TxnField.config_asset_url: url,
-                    TxnField.note: note,
+                    TxnField.note: pid,
                     TxnField.config_asset_metadata_hash: hash,
-    #set to 1 if the asset is supposed to be default frozen on creation
+                    #Asset is unforzen on default as it needs to be transfered from the escrow to the creator 
                     TxnField.config_asset_default_frozen: Int(0),
-    #change the values to Txn.sender() if you want to have a different account calling the contract as the 
-    #the addresses. Change to Global.application_address() if the escrow should remain as the mainter.
+                    #the administrational addresses are set to the app creator
                     TxnField.config_asset_manager: Global.creator_address(),
                     TxnField.config_asset_reserve: Global.creator_address(),
                     TxnField.config_asset_freeze: Global.creator_address(),
@@ -65,19 +93,78 @@ def stateful():
                     
     ]
             )
+    on_rerun_asa= Seq([ 
+                       #loop to have the remainder asset chained 
+            For(i.store(Int(0)), i.load() < Int(y2), i.store(i.load() + Int(1)))  
+            .Do( 
+            InnerTxnBuilder.Begin(),                 
+            InnerTxnBuilder.SetFields({
+                    TxnField.type_enum: TxnType.AssetConfig,
+                    TxnField.config_asset_total: Int(1),
+                    TxnField.config_asset_decimals: Int(0),
+                    TxnField.config_asset_unit_name: unit,
+                    TxnField.config_asset_name: name,
+                    TxnField.config_asset_url: url,
+                    TxnField.note: pid,
+                    TxnField.config_asset_metadata_hash: hash,
+                    #Asset is unforzen on default as it needs to be transfered from the escrow to the creator 
+                    TxnField.config_asset_default_frozen: Int(0),
+                    #the administrational addresses are set to the app creator
+                    TxnField.config_asset_manager: Global.creator_address(),
+                    TxnField.config_asset_reserve: Global.creator_address(),
+                    TxnField.config_asset_freeze: Global.creator_address(),
+                    TxnField.config_asset_clawback: Global.creator_address()
+                    }),
+            
+        
+                    #Submit the transaction
+                    InnerTxnBuilder.Submit(), 
+                    ),
+                    Int(1),
+                    
+                    
+    ]
+            )
+    #single asset creation 
+    on_final_asa= Seq([ 
+            InnerTxnBuilder.Begin(),                 
+            InnerTxnBuilder.SetFields({
+                    TxnField.type_enum: TxnType.AssetConfig,
+                    TxnField.config_asset_total: Int(1),
+                    TxnField.config_asset_decimals: Int(0),
+                    TxnField.config_asset_unit_name: unit,
+                    TxnField.config_asset_name: name,
+                    TxnField.config_asset_url: url,
+                    TxnField.note: pid,
+                    TxnField.config_asset_metadata_hash: hash,
+                    TxnField.config_asset_default_frozen: Int(0),
+                    TxnField.config_asset_manager: Global.creator_address(),
+                    TxnField.config_asset_reserve: Global.creator_address(),
+                    TxnField.config_asset_freeze: Global.creator_address(),
+                    TxnField.config_asset_clawback: Global.creator_address()
+                    }),
+            
+                    #Submit the transaction
+                    InnerTxnBuilder.Submit(), 
+                    Int(1),
+                    
+                    
+    ]
+            )
+    
         
         
     
-
+#Conditions based on the caller string passed
     program = Cond(
         [Txn.application_id() == Int(0), Int(1)],
-    #Change the call condition to create the assets if you want it to be triggered with another argument
-        [Txn.application_args[0] == Bytes("create_asa"), on_create_asa]
+        [Txn.application_args[0] == Bytes("create_asa"), on_create_asa],
+        [Txn.application_args[0] == Bytes("rerun_asa"), on_rerun_asa],
+        [Txn.application_args[0] == Bytes("final_asa"), on_final_asa]
     )
 
     return And(Txn.group_index() == Int(0), program)
 
 
 if __name__ == "__main__":
-    #requires pyTeal/Teal Version 7 might need to start sandbox with the future_template.json
     print(compileTeal(stateful(), Mode.Application, version=7))
