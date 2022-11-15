@@ -158,6 +158,10 @@ def stateful():
 #Conditions based on the caller string passed
     program = Cond(
         [Txn.application_id() == Int(0), Int(1)],
+        [Txn.on_completion() == OnComplete.DeleteApplication, Int(1)],
+        [Txn.on_completion() == OnComplete.UpdateApplication, Int(1)],
+        [Txn.on_completion() == OnComplete.CloseOut, Int(0)],
+        [Txn.on_completion() == OnComplete.OptIn, Int(0)],
         [Txn.application_args[0] == Bytes("create_asa"), on_create_asa],
         [Txn.application_args[0] == Bytes("rerun_asa"), on_rerun_asa],
         [Txn.application_args[0] == Bytes("final_asa"), on_final_asa]
